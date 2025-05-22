@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Address {
+  id          String @id @default(uuid())
+  userId      String
+  addressLine String
+  city        String
+  state       String
+  postalCode  String
+  country     String
+  User        User   @relation(fields: [userId], references: [id])
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  Product   Product  @relation(fields: [productId], references: [id])
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Discount {
+  id         String    @id @default(uuid())
+  code       String    @unique
+  percentage Int
+  expiresAt  DateTime?
+  isActive   Boolean   @default(true)
+}
+
+model FAQ {
+  id       String @id @default(uuid())
+  question String
+  answer   String
+}
+
+model Order {
+  id        String      @id @default(uuid())
+  userId    String
+  status    OrderStatus @default(pending)
+  total     Decimal
+  createdAt DateTime    @default(now())
+  User      User        @relation(fields: [userId], references: [id])
+  OrderItem OrderItem[]
+  Payment   Payment?
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal
+  Order     Order   @relation(fields: [orderId], references: [id])
+  Product   Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id      String        @id @default(uuid())
+  orderId String        @unique
+  method  PaymentMethod
+  status  PaymentStatus @default(pending)
+  paidAt  DateTime?
+  Order   Order         @relation(fields: [orderId], references: [id])
+}
+
+model Product {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal
+  stock       Int            @default(0)
+  gender      Gender
+  brand       String
+  createdAt   DateTime       @default(now())
+  categoryId  String?
+  CartItem    CartItem[]
+  OrderItem   OrderItem[]
+  Category    Category?      @relation(fields: [categoryId], references: [id])
+  Review      Review[]
+  images      ProductImage[]
+}
+
+model ProductImage {
+  id        String  @id @default(uuid())
+  url       String
+  rank      Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  userId      String
+  productId   String
+  rating      Int
+  comment     String?
+  isModerated Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  Product     Product  @relation(fields: [productId], references: [id])
+  User        User     @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id           String     @id @default(uuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         Role       @default(client)
+  isBlocked    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  Address      Address[]
+  CartItem     CartItem[]
+  Order        Order[]
+  Review       Review[]
+}
+
+enum Gender {
+  male
+  female
+  unisex
+}
+
+enum OrderStatus {
+  pending
+  paid
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+enum PaymentMethod {
+  credit_card
+  paypal
+  bank_transfer
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+}
+
+enum Role {
+  client
+  admin
+}
